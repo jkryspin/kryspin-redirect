@@ -4,7 +4,7 @@ require('dotenv').config()
 
 const client = new Client({
     connectionString: process.env.CONNECTION_STRING,
-    ssl: true,
+    ssl: process.env.DB_SSL === 'false' ? false : true,
 });
 client.asyncQuery = function (query, values) {
     return new Promise((resolve, reject) => {

@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kryspin-redirect
+  namespace: kryspin-redirect
+  labels:
+    app: kryspin-redirect
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kryspin-redirect
+  template:
+    metadata:
+      labels:
+        app: kryspin-redirect
+    spec:
+      containers:
+      - name: kryspin-redirect
+        image: localhost/kryspin-redirect:1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        env:
+        - name: NODE_ENV
+          value: production
+        - name: DB_SSL
+          value: "false"
+        - name: CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: kryspin-redirect-secret
+              key: CONNECTION_STRING
+        resources:
+          requests:
+            cpu: 25m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kryspin-redirect
+  namespace: kryspin-redirect
+spec:
+  selector:
+    app: kryspin-redirect
+  ports:
+  - port: 80
+    targetPort: 8080
