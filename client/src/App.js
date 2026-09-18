@@ -1,74 +1,72 @@
-import React, { useState, useEffect } from 'react';
-import logo from './logo.svg';
-import './App.css';
-import axios from 'axios'
-import { CopyToClipboard } from 'react-copy-to-clipboard';
-const DEFAULT_URL = "https://"
+import React, { useCallback, useEffect, useState } from 'react'
+import './App.css'
+import Home from './Home'
+import Admin from './Admin'
 
-function App() {
-  const [path, setPath] = useState("")
-  const [redirect_to, setRedirect_to] = useState(DEFAULT_URL)
-  const [saved, setSaved] = useState("")
-  const [savedPath, setSavedPath] = useState("")
-  const [recentPath, setRecentPath] = useState({})
-  useEffect(() => {
-    async function fetchData() {
-      const { data } = await axios.get("/api/mostRecent")
-      if (data && data.path) {
-        console.log(data)
-        setRecentPath(data)
-        console.log("set")
-      }
-    }
-    fetchData()
-  }, [])
-  function handleChange(event) {
-    setPath(event.target.value)
-  }
-  function handleChangeR(event) {
-    setRedirect_to(event.target.value)
-  }
-
-  return (
-    <div className="App">
-      <div className="container">
-        <div>Create a new Redirect</div>
-        <div className="label">Path </div>
-        <input className="input" type="text" placeholder={"any-path"} value={path} onChange={handleChange} />
-        <div className="label">Redirect to</div>
-        <input className="input" type="text" placeholder={"https://ibm.com/training"} value={redirect_to} onChange={handleChangeR} />
-        <div>
-          <button disabled={!path || !redirect_to} onClick={async () => {
-            const { data } = await axios.post("/api/savePath", { path, redirect_to })
-            if (data && data.err) {
-              setSaved(data.msg)
-            } else {
-              setSavedPath(window.location.origin + "/" + path)
-              setPath("")
-              setRedirect_to(DEFAULT_URL)
-              setSaved("Saved!")
-            }
-            setTimeout(() => { setSaved("") }, 5000)
-          }}>Send Redirect</button>
-        </div>
-        <div>
-          <CopyToClipboard text={savedPath} onCopy={() => { }}>
-            <button disabled={savedPath.length === 0}>Copy Link: {savedPath}</button>
-          </CopyToClipboard>
-
-        </div>
-        <div>{saved}</div>
-        {recentPath.path && <div className="most-recent tooltip">
-          {window.location.origin + "/" + recentPath.path}
-          <span class="tooltiptext"><a href={recentPath.redirect_to}>{recentPath.redirect_to}</a></span>
-        </div>}
-
-        <div className="example">Example: inputting path as 'eggs' and redirect as 'https://reddit.com' will redirect you when visiting https://r.kryspin.dev/eggs</div>
-
-        <div>V1.3</div>
-      </div>
-    </div >
-  );
+function currentRoute() {
+    return window.location.pathname === '/admin' ? 'admin' : 'home'
 }
 
-export default App;
+function App() {
+    const [route, setRoute] = useState(currentRoute)
+    const [toast, setToast] = useState(null)
+
+    useEffect(function () {
+        function onPop() { setRoute(currentRoute()) }
+        window.addEventListener('popstate', onPop)
+        return function () { window.removeEventListener('popstate', onPop) }
+    }, [])
+
+    useEffect(function () {
+        document.title = route === 'admin' ? 'Links — r.kryspin.dev' : 'r.kryspin.dev'
+    }, [route])
+
+    useEffect(function () {
+        if (!toast) return undefined
+        const timer = setTimeout(function () { setToast(null) }, 4000)
+        return function () { clearTimeout(timer) }
+    }, [toast])
+
+    const navigate = useCallback(function (to) {
+        window.history.pushState({}, '', to)
+        setRoute(currentRoute())
+        window.scrollTo(0, 0)
+    }, [])
+
+    const notify = useCallback(function (message, tone) {
+        setToast({ message: message, tone: tone || 'ok', key: Date.now() })
+    }, [])
+
+    return (
+        <div className="page">
+            <header className="topbar">
+                <button type="button" className="wordmark" onClick={function () { navigate('/') }}>
+                    r.kryspin.dev
+                </button>
+                {route === 'home' ? (
+                    <button type="button" className="btn btn--ghost" onClick={function () { navigate('/admin') }}>
+                        Manage links
+                    </button>
+                ) : (
+                    <button type="button" className="btn btn--ghost" onClick={function () { navigate('/') }}>
+                        Create a link
+                    </button>
+                )}
+            </header>
+
+            <main className="main">
+                {route === 'home'
+                    ? <Home notify={notify} />
+                    : <Admin notify={notify} />}
+            </main>
+
+            {toast && (
+                <div key={toast.key} className={'toast toast--' + toast.tone} role="status">
+                    {toast.message}
+                </div>
+            )}
+        </div>
+    )
+}
+
+export default App

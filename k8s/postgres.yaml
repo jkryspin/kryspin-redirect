@@ -9,7 +9,10 @@ data:
         id SERIAL PRIMARY KEY,
         path TEXT UNIQUE NOT NULL,
         redirect_to TEXT NOT NULL,
-        last_update TIMESTAMPTZ
+        last_update TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT now(),
+        hits INTEGER NOT NULL DEFAULT 0,
+        last_hit TIMESTAMPTZ
     );
 ---
 apiVersion: apps/v1

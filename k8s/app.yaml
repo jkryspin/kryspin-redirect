@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: kryspin-redirect
-        image: localhost/kryspin-redirect:1
+        image: localhost/kryspin-redirect:2
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080
@@ -31,6 +31,11 @@ spec:
             secretKeyRef:
               name: kryspin-redirect-secret
               key: CONNECTION_STRING
+        - name: ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: kryspin-redirect-secret
+              key: ADMIN_PASSWORD
         resources:
           requests:
             cpu: 25m
